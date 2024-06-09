@@ -60,7 +60,6 @@ const startServer = () => {
     });
 
     // Start the metrics server
-
     metricsServer.listen(METRICS_PORT, () => {
       Logger.info(`Cluster metrics server listening on port ${METRICS_PORT}, metrics exposed on /cluster_metrics`);
     });
