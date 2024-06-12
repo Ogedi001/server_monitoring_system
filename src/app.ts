@@ -12,7 +12,7 @@ import promClient from "prom-client";
 
 import Logger from "./logger";
 import { ApplicationRoute } from "./routes";
-import { errorHandlerMiddleware, pageNotFound } from "./middleware";
+import { errorHandlerMiddleware, pageNotFound, trackRouteCalls } from "./middleware";
 import { handleClusterMetricsRequest, handleMetricsRequest } from "./controller/monitoring-controller";
 
 
@@ -42,6 +42,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
+
 const startServer = () => {
 
   if (cluster.isPrimary) {
@@ -65,13 +66,14 @@ const startServer = () => {
     });
 
   } else {
+    app.use(trackRouteCalls)
 
     app.get("/api", (req: Request, res: Response) => {
+      console.log(req.path)
       return res
         .status(StatusCodes.OK)
         .json({ message: "Welcome to Backend Api version 1.0 🔥🔥🔥" });
     });
-
     app.get('/metrics', handleMetricsRequest)
 
     app.use("/api", ApplicationRoute);
