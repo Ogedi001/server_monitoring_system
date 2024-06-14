@@ -12,8 +12,9 @@ import promClient from "prom-client";
 
 import Logger from "./logger";
 import { ApplicationRoute } from "./routes";
-import { errorHandlerMiddleware, pageNotFound, trackRouteCalls } from "./middleware";
+import { errorHandlerMiddleware, measureResponseTime, pageNotFound, trackHttpRequest } from "./middleware";
 import { handleClusterMetricsRequest, handleMetricsRequest } from "./controller/monitoring-controller";
+import { test1, test2 } from "./controller/dummy-controller";
 
 
 const numCPUs = os.availableParallelism()
@@ -66,7 +67,8 @@ const startServer = () => {
     });
 
   } else {
-    app.use(trackRouteCalls)
+    app.use(measureResponseTime);
+    app.use(trackHttpRequest);
 
     app.get("/api", (req: Request, res: Response) => {
       console.log(req.path)
@@ -74,6 +76,9 @@ const startServer = () => {
         .status(StatusCodes.OK)
         .json({ message: "Welcome to Backend Api version 1.0 🔥🔥🔥" });
     });
+
+    app.get("/api/test1", test1)
+    app.get("/api/test2", test2)
     app.get('/metrics', handleMetricsRequest)
 
     app.use("/api", ApplicationRoute);

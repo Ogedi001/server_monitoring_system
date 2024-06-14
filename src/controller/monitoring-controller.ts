@@ -10,12 +10,23 @@ const aggregatorRegistry = new AggregatorRegistry();
 
 
 
-export const routeCallsCounter = new Counter({
-    name: 'http_requests_total_in_5_minutes',
-    help: 'Total number of HTTP requests received by each route within the last 5 minutes',
-    labelNames: ['route', 'method', "status_code"],
+export const httpRequestCounter = new Counter({
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests processed',
+    labelNames: ['method', 'route', 'status_code'],
 });
 
+export const error_httpRequestCounter = new promClient.Counter({
+    name: 'http_request_errors_total',
+    help: 'Total number of HTTP request errors',
+    labelNames: ['method', 'route', 'status_code']
+});
+
+export const success_httpRequestCounter = new promClient.Counter({
+    name: 'http_request_success_total',
+    help: 'Total number of successful HTTP requests',
+    labelNames: ['method', 'route', 'status_code']
+});
 
 const uptimeGauge = new Gauge({
     name: 'server_uptime_minutes',
@@ -29,6 +40,12 @@ const loadGauge = new Gauge({
     labelNames: ['interval'],
 });
 
+export const responseTimeSummary = new Summary({
+    name: 'http_response_time_seconds',
+    help: 'Response time in seconds',
+    labelNames: ['method', 'route', 'status_code'],
+    percentiles: [0.01, 0.1, 0.9, 0.95, 0.99],
+});
 
 function getSystemUptimeMinutes() {
     const uptimeSeconds = process.uptime();
@@ -52,14 +69,11 @@ function updateLoadMetric() {
 
 
 
-function resetRouteCallsCounter() {
-    routeCallsCounter.reset();
-    Logger.info('Total HTTP request count reset successfully');
-}
 
 setInterval(updateUptimeMetric, 300000);
 setInterval(updateLoadMetric, 300000);
-setInterval(resetRouteCallsCounter, 300000);
+
+
 
 
 
