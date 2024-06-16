@@ -6,6 +6,8 @@ import Logger from "../logger";
 import { checkSystemHealth, disksInfo } from "../utils/healthCheck-utils";
 
 
+const aggregatorRegistry = new AggregatorRegistry();
+
 
 
 //http metrics
@@ -125,7 +127,7 @@ setInterval(async () => {
     freeDiskSpaceGauge.set((await disksInfo())?.free!);
     availableDiskSpaceGauge.set((await disksInfo())?.available!);
     diskUsagePercentageGauge.set((await disksInfo())?.usagePercentage!);
-
+    console.log((await disksInfo())?.usagePercentage!)
 }, 60000);
 
 
@@ -143,3 +145,25 @@ export async function handleMetricsRequest(_: Request, res: Response) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).end(err);
     }
 }
+
+
+export async function handleClusterMetricsRequest(_: Request, res: Response) {
+    try {
+        //gatter metrics from all node worker clusters
+        const metrics = await aggregatorRegistry.clusterMetrics();
+        res.set('Content-Type', aggregatorRegistry.contentType);
+        res.send(metrics);
+    } catch (err: unknown) {
+        Logger.error(`An error occurred while handling metrics request: ${err}`, { label: 'metrics' });
+        if (err instanceof Error) {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: err.message });
+        }
+    }
+}
+
+// if (cluster.isWorker) {
+//     // Expose some worker-specific metric as an example
+//     setInterval(() => {
+//         c.inc({ code: `worker_${cluster.worker.id}` });
+//     }, 2000);
+// }

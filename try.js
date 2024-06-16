@@ -19,3 +19,8 @@ setTimeout(function () {
   // Print the Execution time.
   console.log("End Time:", end_time);
 }, 1000);
+
+const os = require("os");
+const cpus = os.cpus();
+console.log(cpus.length);
+console.log(cpus);
