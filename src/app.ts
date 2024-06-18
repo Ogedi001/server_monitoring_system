@@ -3,11 +3,10 @@ import "express-async-errors";
 import express, { Request, Response, Application } from "express";
 import { createServer } from "http";
 
-import os from 'node:os'
-import process from 'process'
+
 import cors from 'cors'
 import { StatusCodes } from "http-status-codes";
-import promClient from "prom-client";
+
 
 
 import Logger from "./logger";
@@ -17,7 +16,6 @@ import { handleMetricsRequest } from "./controller/monitoring-controller";
 import { test1, test2 } from "./controller/dummy-controller";
 
 
-const numCPUs = os.availableParallelism()
 const app: Application = express();
 
 
@@ -61,7 +59,7 @@ const startServer = () => {
   app.use(pageNotFound);
 
   server.listen(PORT, () => {
-    Logger.info(`App is running @localhost:${PORT}: Worker ${process.pid} started`);
+    Logger.info(`App is running @localhost:${PORT}`);
   });
 
   const shutdown = () => {

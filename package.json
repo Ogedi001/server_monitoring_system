@@ -20,6 +20,7 @@
     "express-async-errors": "^3.1.1",
     "http-status-codes": "^2.3.0",
     "prom-client": "^15.1.2",
+    "systeminformation": "^5.22.11",
     "winston": "^3.13.0",
     "winston-loki": "^6.1.2"
   },
