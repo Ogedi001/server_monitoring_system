@@ -121,23 +121,6 @@ const totalNetworkSentMetric = new promClient.Gauge({
     help: "Total data sent over all network interfaces in bytes",
 });
 
-const loadGauge = new Gauge({
-    name: "server_load_average",
-    help: "Server load average over the last 1, 5, and 15 minutes",
-    labelNames: ["interval"],
-});
-
-function updateLoadMetric() {
-    const loadAverages = os.loadavg();
-    loadGauge.set({ interval: "1m" }, loadAverages[0]);
-    loadGauge.set({ interval: "5m" }, loadAverages[1]);
-    loadGauge.set({ interval: "15m" }, loadAverages[2]);
-    Logger.info(
-        `System load averages updated: 1m=${loadAverages[0]}, 5m=${loadAverages[1]}, 15m=${loadAverages[2]}`
-    );
-}
-
-setInterval(updateLoadMetric, 300000);
 
 setInterval(async () => {
     //Availability metrics
