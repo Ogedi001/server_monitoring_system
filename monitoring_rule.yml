@@ -1,0 +1,21 @@
+groups:
+- name: system_availability_alerts
+  rules:
+  - alert: SystemAvailabilityLow
+    expr: system_availability_percentage < 75
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "System availability is low"
+      description: "System availability is below 75% for more than 5 minutes. Current value: {{ $value }}%"
+
+  - alert: SystemAvailabilityHigh
+    expr: system_availability_percentage > 75
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "System availability is High"
+      description: "System availability is above 75% for more than 1 minutes. Current value: {{ $value }}%"
+
