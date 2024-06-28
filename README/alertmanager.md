@@ -1,4 +1,4 @@
-# Alerttmanger Installation configuration Guide 
+# Alertmanger Installation configuration Guide 
 This guide provides step-by-step instructions to install and configure Alertmanager.
 
 ## Prerequisites
