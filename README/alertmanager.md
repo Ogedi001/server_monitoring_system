@@ -36,7 +36,7 @@ Create the configuration directory:
   sudo mkdir -p /etc/alertmanager
 ```
 
-### 5.Move Configuration File to Standard Config Directory
+### 5. Move Configuration File to Standard Config Directory
 Move the configuration file to /etc/alertmanager:
 
 ```sh
@@ -47,7 +47,7 @@ Move the configuration file to /etc/alertmanager:
 sudo nano /etc/alertmanager/alertmanager.yml
 ```
 
-### 6.Create Storage Directory
+### 6. Create Storage Directory
 Create the storage directory:
 
  ```sh
