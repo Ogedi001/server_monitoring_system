@@ -4,129 +4,192 @@ This guide provides step-by-step instructions to install and configure Alertmana
 ## Prerequisites
 
 - A Linux system
-- `wget` and `unzip` installed
+- `wget`  installed
 - Root access or sudo privileges
 
 ## Installation Steps
 
-### 1. Download Loki Binary:
-Download the Promtail binary for Linux (amd64) using `wget`:
+### 1. Download alertmanager Binary:
+Download the latest version of Alertmanager for Linux (amd64) using `wget`:
 
    ```sh
-    sudo wget https://github.com/grafana/loki/releases/download/v3.0.0/loki-linux-amd64.zip
+    sudo wget https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz
    ```
 
 ### 2. Unzip the Binary or file:
-Install unzip if not already installed and unzip the downloaded file:
+Extract the contents of the tar.gz file:
 
 ```sh
-    sudo apt-get install unzip
-    sudo unzip loki-linux-amd64.zip
+    tar xvfz alertmanager-0.27.0.linux-amd64.tar.gz
 ```
 
-### 3. Download Configuration File:
-Download the default Loki configuration file:
+### 3. Move Binaries to a Standard Location
+Move the binaries to /usr/local/bin:
 
  ```sh
-    sudo wget https://raw.githubusercontent.com/grafana/loki/main/cmd/loki/loki-local-config.yaml
+   sudo mv alertmanager-0.27.0.linux-amd64/alertmanager /usr/local/bin/
+   sudo mv alertmanager-0.27.0.linux-amd64/amtool /usr/local/bin/
  ```
-
-**N/B To see config 'yaml' file** 
-
+### 4. Create Configuration Directory
+Create the configuration directory:
 ```sh
-  sudo nano /etc/loki/loki-local-config.yaml
+  sudo mkdir -p /etc/alertmanager
 ```
 
-### 4.Move Configuration File:
-Create the necessary directory and move the configuration file to it:
+### 5.Move Configuration File to Standard Config Directory
+Move the configuration file to /etc/alertmanager:
 
 ```sh
-    sudo mkdir -p /etc/loki
-    sudo mv loki-local-config.yaml /etc/loki/
+    sudo mv alertmanager-0.27.0.linux-amd64/alertmanager.yml /etc/alertmanager/
+```
+**N/B** To edit or view the configuration file:
+```sh
+sudo nano /etc/alertmanager/alertmanager.yml
 ```
 
-### 5.Set Permissions:
-Set appropriate permissions for the configuration file:
+### 6.Create Storage Directory
+Create the storage directory:
 
  ```sh
-    sudo chown root:root /etc/loki/loki-local-config.yaml
-    sudo chmod 644 /etc/loki/loki-local-config.yaml
+   sudo useradd --no-create-home --shell /bin/false alertmanager
  ```
 
-### 6. Start Loki:
-Run Promtail with the specified configuration file:
+### 7. Create a User for Alertmanager
+Create a dedicated user and group:
 
 ```sh
-    ./loki-linux-amd64 -config.file=/etc/loki/loki-local-config.yaml
+   sudo useradd --no-create-home --shell /bin/false alertmanager
  ```
+### 8. Set Permissions
+Set the appropriate ownership and permissions:
 
-## Running Loki as a Service (Optional)
-Follow these steps:
+```sh
+sudo chown -R alertmanager:alertmanager /etc/alertmanager
+sudo chown alertmanager:alertmanager /usr/local/bin/alertmanager
+```
 
-### 1. Move Loki Executable :
-Rename and move the Loki executable to a directory in your PATH:
+### 9. Create a Systemd Service File
+Create and edit the Alertmanager service file:
+```sh
+sudo nano /etc/systemd/system/alertmanager.service
+```
+Add the following content:
 
-   ```sh
-    sudo mv loki-linux-amd64 /usr/local/bin/loki
+```ini
+[Unit]
+Description=Alertmanager
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=alertmanager
+Group=alertmanager
+Type=simple
+ExecStart=/usr/local/bin/alertmanager --config.file /etc/alertmanager/alertmanager.yml --storage.path /var/lib/alertmanager/
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 10. Configure Alertmanager for Email Notifications
+Edit the Alertmanager configuration file to include email notifications:
+   ```yaml
+   global:
+  smtp_smarthost: 'host address'
+  smtp_from: 'from mail'
+  smtp_auth_username: 'username'
+  smtp_auth_password: "pass"  # Use double quotes to handle special characters
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: 'email-alert'
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://127.0.0.1:5001/'
+
+  - name: 'email-alert'
+    email_configs:
+      - to: 'email'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev',
+
    ```
+Restart Alertmanager after making these changes:
 
-**loki-linux-amd64** is renamed to **loki** and was move to `` /usr/local/bin `` directory
+```sh
+sudo systemctl daemon-reload
+sudo systemctl restart alertmanager
+```
+### 11. Create Alert Rule YAML File
+Create your alert rules file (e.g., monitoring_rule.yml) in your desired directory.
 
-### 2. Set Executable Permissions:
-Ensure the Loki executable has the correct permissions:
+An example yml rule file
+```plaintext
+groups:
+- name: system_availability_alerts
+  rules:
+  - alert: SystemAvailabilityLow
+    expr: system_availability_percentage < 75
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "System availability is low"
+      description: "System availability is below 75% for more than 5 minutes. Current value: {{ $value }}%"
 
-   ```sh
-    sudo chmod +x /usr/local/bin/loki
-   ```
+```
+### 12. Add Path to Alert Rule File in Prometheus Configuration
+Edit your Prometheus configuration file to include the alert rule file:
 
-3. **Create Systemd Service File**:
-Create a systemd service file for Loki:
+```yaml
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
 
-   ```sh
-    sudo nano /etc/systemd/system/loki.service
-   ```
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  - "path/to/onitoring_rule.yml"
+  # - "second_rules.yml"
+```
+Restart Prometheus to apply the changes:
+```sh
+sudo systemctl restart prometheus
+```
 
-### 4. Add Service Configuration Content:
-
- ```ini
-
-    [Unit]
-    Description=Loki
-    Wants=network-online.target
-    After=network-online.target
-    
-    [Service]
-    User=root
-    Group=root
-    Type=simple
-    ExecStart=/usr/local/bin/loki -config.file=/etc/loki/loki-local-config.yaml
-    
-    [Install]
-    WantedBy=multi-user.target
- ```
-
-5. **Reload Systemd**:
-Reload systemd to apply the new service:
-
-    ```sh
-    sudo systemctl daemon-reload
-    ```
-
-6. **Enable and Start Loki Service**:
-Enable the Loki service to start on boot and start it:
-    ```sh
-    sudo systemctl enable loki
-    sudo systemctl start loki
-    ```
-
-7. **Check Loki Service Status**:
-Check the status of the Loki service
-    ```sh
-    sudo systemctl status loki
-    ```
-## Check if Loki is Running Locally
+### 12 Check if alertmanager is Running Locally
 
 To verify if Loki is running locally on your system, you can use the following URL in your browser:
 
-[Check Promtail Status](http://localhost:3100/metrics) ``http://localhost:3100/metrics``
+[Check alertmanager](http://localhost:9093) ``http://localhost:9093``
+
+## Important: 
+
+**Add Prometheus User to the Appropriate Group where rule.yml is located**
+Ensure the Prometheus user has the necessary permissions:
+```sh
+sudo usermod -aG parent_directory_group prometheus
+```
+Verify the permissions:
+```sh
+sudo ls -ld /parent_directory_group /parent_directory_group/child_dir /parent_directory_group/child_dir/rules.yml
+```
+
+prometheus cannot access file and directories that does not belong prometheus user and group to execute alert rules
+
 
